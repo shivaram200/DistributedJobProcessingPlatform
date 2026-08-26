@@ -1,4 +1,4 @@
-package com.projectone.distributedjobprocessingplatform.Entity;
+package com.projectone.distributedjobprocessingplatform.entity;
 
 public enum JobStatus {
     PENDING,
