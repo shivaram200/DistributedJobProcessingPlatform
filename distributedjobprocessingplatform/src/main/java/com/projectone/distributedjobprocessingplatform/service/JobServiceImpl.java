@@ -6,8 +6,10 @@ import com.projectone.distributedjobprocessingplatform.dto.JobResponse;
 import com.projectone.distributedjobprocessingplatform.dto.JobStatusResponse;
 import com.projectone.distributedjobprocessingplatform.entity.Job;
 import com.projectone.distributedjobprocessingplatform.entity.JobStatus;
+import com.projectone.distributedjobprocessingplatform.exception.InvalidJobException;
 import com.projectone.distributedjobprocessingplatform.exception.JobNotFoundException;
 import com.projectone.distributedjobprocessingplatform.repository.JobRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -27,7 +29,14 @@ public class JobServiceImpl implements JobService{
 
         Job job =new Job();
 
-        job.setType(createJobRequest.getType());
+        if(createJobRequest.getType().equals("report_delete")){
+            throw new InvalidJobException("Job type should not be report_delete");
+        }else{
+            job.setType(createJobRequest.getType());
+        }
+
+
+
         job.setPayload(createJobRequest.getPayload());
         job.setStatus(JobStatus.PENDING);
         job.setPriority(createJobRequest.getPriority());
@@ -46,10 +55,11 @@ public class JobServiceImpl implements JobService{
     }
 
     @Override
+    @Cacheable(value="jobs",key="#id")
     public JobResponse getJobById(UUID id) {
 
        Job job = jobRepository.findById(id)
-               .orElseThrow(() -> new JobNotFoundException("Job not found :"+id));
+               .orElseThrow(() -> new JobNotFoundException("Job not found : "+id));
 
 
 
@@ -60,7 +70,7 @@ public class JobServiceImpl implements JobService{
     public JobStatusResponse getJobStatus(UUID id) {
 
         Job job = jobRepository.findById(id)
-                .orElseThrow(() -> new JobNotFoundException("Job not found :"+id));
+                .orElseThrow(() -> new JobNotFoundException("Job not found : "+id));
 
         return convertToJobStatusResponse(job);
     }

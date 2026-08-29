@@ -5,6 +5,7 @@ import com.projectone.distributedjobprocessingplatform.dto.CreateJobRequest;
 import com.projectone.distributedjobprocessingplatform.dto.JobResponse;
 import com.projectone.distributedjobprocessingplatform.dto.JobStatusResponse;
 import com.projectone.distributedjobprocessingplatform.service.JobService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +24,7 @@ public class JobController {
 
 
     @PostMapping
-    public ResponseEntity<JobResponse> createJob(@RequestBody CreateJobRequest createJobRequest){
+    public ResponseEntity<JobResponse> createJob(@Valid  @RequestBody CreateJobRequest createJobRequest){
 
 
 
