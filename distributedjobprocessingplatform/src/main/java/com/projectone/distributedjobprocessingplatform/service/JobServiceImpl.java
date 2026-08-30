@@ -5,23 +5,29 @@ import com.projectone.distributedjobprocessingplatform.dto.CreateJobRequest;
 import com.projectone.distributedjobprocessingplatform.dto.JobResponse;
 import com.projectone.distributedjobprocessingplatform.dto.JobStatusResponse;
 import com.projectone.distributedjobprocessingplatform.entity.Job;
+import com.projectone.distributedjobprocessingplatform.entity.JobAttempt;
 import com.projectone.distributedjobprocessingplatform.entity.JobStatus;
 import com.projectone.distributedjobprocessingplatform.exception.InvalidJobException;
+import com.projectone.distributedjobprocessingplatform.exception.InvalidJobStatusTransitionException;
 import com.projectone.distributedjobprocessingplatform.exception.JobNotFoundException;
+import com.projectone.distributedjobprocessingplatform.repository.JobAttemptRepository;
 import com.projectone.distributedjobprocessingplatform.repository.JobRepository;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class JobServiceImpl implements JobService{
     private final JobRepository jobRepository;
+    private final JobAttemptRepository jobAttemptRepository;
 
-    public JobServiceImpl(JobRepository jobRepository){
+    public JobServiceImpl(JobRepository jobRepository,JobAttemptRepository jobAttemptRepository){
         this.jobRepository=jobRepository;
+        this.jobAttemptRepository=jobAttemptRepository;
     }
 
     @Override
@@ -73,6 +79,65 @@ public class JobServiceImpl implements JobService{
                 .orElseThrow(() -> new JobNotFoundException("Job not found : "+id));
 
         return convertToJobStatusResponse(job);
+    }
+
+    @Override
+    @CacheEvict(value = "jobs", key = "#jobId")
+    @Transactional
+    public void updateJobStatus(UUID jobId, JobStatus newStatus) {
+         Job job = jobRepository.findById(jobId)
+                 .orElseThrow(() -> new JobNotFoundException("Job not found : "+jobId));
+
+         validateStatusTransition(job.getStatus(),newStatus);
+
+         if(job.getStatus()==JobStatus.PENDING && newStatus==JobStatus.PROCESSING){
+             JobAttempt jobAttempt = new JobAttempt();
+
+             jobAttempt.setStatus(JobStatus.PROCESSING);
+             jobAttempt.setAttemptNumber(1);
+             jobAttempt.setJob(job);
+             jobAttempt.setStartedAt(LocalDateTime.now());
+             jobAttemptRepository.save(jobAttempt);
+
+         }
+         if(job.getStatus()==JobStatus.PROCESSING && (newStatus==JobStatus.COMPLETED || newStatus==JobStatus.FAILED)){
+             JobAttempt jobAttempt =jobAttemptRepository.findTopByJobOrderByAttemptNumberDesc(job)
+                     .orElseThrow(() -> new IllegalStateException("No Job attempt created for job: "+jobId));
+             jobAttempt.setStatus(newStatus);
+             jobAttempt.setCompletedAt(LocalDateTime.now());
+             jobAttemptRepository.save(jobAttempt);
+         }
+
+         job.setStatus(newStatus);
+         job.setUpdatedAt(LocalDateTime.now());
+         jobRepository.save(job);
+    }
+
+    private void validateStatusTransition(
+            JobStatus currentStatus,
+            JobStatus newStatus) {
+
+        boolean valid = switch (currentStatus) {
+
+            case PENDING ->
+                    newStatus == JobStatus.PROCESSING;
+
+            case PROCESSING ->
+                    newStatus == JobStatus.COMPLETED
+                            || newStatus == JobStatus.FAILED;
+
+            case COMPLETED, FAILED ->
+                    false;
+        };
+
+        if (!valid) {
+            throw new InvalidJobStatusTransitionException(
+                    "Cannot change job status from "
+                            + currentStatus
+                            + " to "
+                            + newStatus
+            );
+        }
     }
 
     private JobStatusResponse convertToJobStatusResponse(Job job){

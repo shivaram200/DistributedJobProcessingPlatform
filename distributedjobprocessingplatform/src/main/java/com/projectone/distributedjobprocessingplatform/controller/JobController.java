@@ -4,6 +4,7 @@ package com.projectone.distributedjobprocessingplatform.controller;
 import com.projectone.distributedjobprocessingplatform.dto.CreateJobRequest;
 import com.projectone.distributedjobprocessingplatform.dto.JobResponse;
 import com.projectone.distributedjobprocessingplatform.dto.JobStatusResponse;
+import com.projectone.distributedjobprocessingplatform.dto.UpdateJobStatusRequest;
 import com.projectone.distributedjobprocessingplatform.service.JobService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -54,6 +55,13 @@ public class JobController {
 
         return ResponseEntity.ok(response);
 
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<Void> updateJobStatus(@PathVariable UUID id, @Valid @RequestBody UpdateJobStatusRequest updateJobStatusRequest){
+        jobService.updateJobStatus(id,updateJobStatusRequest.getStatus());
+
+        return ResponseEntity.noContent().build();
     }
 
 }

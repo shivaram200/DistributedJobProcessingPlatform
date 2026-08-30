@@ -5,4 +5,4 @@ services:
     container_name: distributed-job-redis
     ports:
       - "6379:6379"
-    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    command: redis-server --maxmemory 256gmb --maxmemory-policy allkeys-lru

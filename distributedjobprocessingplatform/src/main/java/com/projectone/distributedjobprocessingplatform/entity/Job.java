@@ -4,6 +4,8 @@ package com.projectone.distributedjobprocessingplatform.entity;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -28,6 +30,17 @@ public class Job {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
+
+    @OneToMany(mappedBy = "job", cascade = CascadeType.ALL)
+    private List<JobAttempt> attempts = new ArrayList<>();
+
+    public List<JobAttempt> getAttempts() {
+        return attempts;
+    }
+
+    public void setAttempts(List<JobAttempt> attempts) {
+        this.attempts = attempts;
+    }
 
     public UUID getId() {
         return id;

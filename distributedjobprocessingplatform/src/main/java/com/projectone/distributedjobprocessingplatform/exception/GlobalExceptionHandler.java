@@ -80,5 +80,20 @@ public class GlobalExceptionHandler {
                 .body(errorResponse);
     }
 
+    @ExceptionHandler(InvalidJobStatusTransitionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidJobStatusTransition(InvalidJobStatusTransitionException exception,HttpServletRequest request){
+        ErrorResponse errorResponse = new ErrorResponse();
+
+        errorResponse.setTime(LocalDateTime.now());
+        errorResponse.setMessage(exception.getMessage());
+        errorResponse.setStatus("409");
+        errorResponse.setError("INVALID_STATUS_CHANGE");
+        errorResponse.setPath(request.getRequestURI());
+
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(errorResponse);
+    }
+
+
 
 }
