@@ -6,6 +6,7 @@ import com.projectone.distributedjobprocessingplatform.dto.JobResponse;
 import com.projectone.distributedjobprocessingplatform.dto.JobStatusResponse;
 import com.projectone.distributedjobprocessingplatform.dto.UpdateJobStatusRequest;
 import com.projectone.distributedjobprocessingplatform.service.JobService;
+import com.projectone.distributedjobprocessingplatform.service.JobWorker;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -19,8 +20,11 @@ public class JobController {
 
     private final JobService jobService;
 
-    public JobController(JobService jobService){
+    private final JobWorker jobWorker;
+
+    public JobController(JobService jobService, JobWorker jobWorker){
         this.jobService = jobService;
+        this.jobWorker = jobWorker;
     }
 
 
@@ -36,6 +40,12 @@ public class JobController {
 
 
 
+    }
+
+    @PostMapping("/worker/process")
+    public ResponseEntity<Void> processJob() {
+        jobWorker.processNextJob();
+        return ResponseEntity.ok().build();
     }
 
 

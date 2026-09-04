@@ -2,6 +2,7 @@ package com.projectone.distributedjobprocessingplatform.service;
 
 
 import com.projectone.distributedjobprocessingplatform.dto.CreateJobRequest;
+import com.projectone.distributedjobprocessingplatform.dto.JobMessage;
 import com.projectone.distributedjobprocessingplatform.dto.JobResponse;
 import com.projectone.distributedjobprocessingplatform.dto.JobStatusResponse;
 import com.projectone.distributedjobprocessingplatform.entity.Job;
@@ -10,6 +11,7 @@ import com.projectone.distributedjobprocessingplatform.entity.JobStatus;
 import com.projectone.distributedjobprocessingplatform.exception.InvalidJobException;
 import com.projectone.distributedjobprocessingplatform.exception.InvalidJobStatusTransitionException;
 import com.projectone.distributedjobprocessingplatform.exception.JobNotFoundException;
+import com.projectone.distributedjobprocessingplatform.queue.JobQueue;
 import com.projectone.distributedjobprocessingplatform.repository.JobAttemptRepository;
 import com.projectone.distributedjobprocessingplatform.repository.JobRepository;
 import org.springframework.cache.annotation.CacheEvict;
@@ -24,10 +26,12 @@ import java.util.UUID;
 public class JobServiceImpl implements JobService{
     private final JobRepository jobRepository;
     private final JobAttemptRepository jobAttemptRepository;
+    private final JobQueue queue;
 
-    public JobServiceImpl(JobRepository jobRepository,JobAttemptRepository jobAttemptRepository){
+    public JobServiceImpl(JobRepository jobRepository, JobAttemptRepository jobAttemptRepository, JobQueue queue){
         this.jobRepository=jobRepository;
         this.jobAttemptRepository=jobAttemptRepository;
+        this.queue = queue;
     }
 
     @Override
@@ -55,6 +59,10 @@ public class JobServiceImpl implements JobService{
         job.setUpdatedAt(now);
 
         Job savedJob = jobRepository.save(job);
+
+        JobMessage jobMessage = new JobMessage(savedJob.getId(),savedJob.getType(),1);
+
+        queue.publish(jobMessage);
 
         return convertToJobResponse(savedJob);
 
