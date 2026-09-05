@@ -60,7 +60,7 @@ public class JobServiceImpl implements JobService{
 
         Job savedJob = jobRepository.save(job);
 
-        JobMessage jobMessage = new JobMessage(savedJob.getId(),savedJob.getType(),1);
+        JobMessage jobMessage = new JobMessage(UUID.randomUUID(),savedJob.getId(),savedJob.getType(),1);
 
         queue.publish(jobMessage);
 

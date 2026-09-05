@@ -1,10 +1,13 @@
 package com.projectone.distributedjobprocessingplatform.controller;
 
 
-import com.projectone.distributedjobprocessingplatform.dto.CreateJobRequest;
-import com.projectone.distributedjobprocessingplatform.dto.JobResponse;
-import com.projectone.distributedjobprocessingplatform.dto.JobStatusResponse;
-import com.projectone.distributedjobprocessingplatform.dto.UpdateJobStatusRequest;
+import com.projectone.distributedjobprocessingplatform.dto.*;
+import com.projectone.distributedjobprocessingplatform.entity.Job;
+import com.projectone.distributedjobprocessingplatform.entity.ProcessedEvent;
+import com.projectone.distributedjobprocessingplatform.exception.JobNotFoundException;
+import com.projectone.distributedjobprocessingplatform.queue.JobQueue;
+import com.projectone.distributedjobprocessingplatform.repository.JobRepository;
+import com.projectone.distributedjobprocessingplatform.repository.ProcessedEventRepository;
 import com.projectone.distributedjobprocessingplatform.service.JobService;
 import com.projectone.distributedjobprocessingplatform.service.JobWorker;
 import jakarta.validation.Valid;
@@ -22,9 +25,18 @@ public class JobController {
 
     private final JobWorker jobWorker;
 
-    public JobController(JobService jobService, JobWorker jobWorker){
+    private final ProcessedEventRepository processedEventRepository;
+
+    private final JobRepository jobRepository;
+
+    private final JobQueue jobQueue;
+
+    public JobController(JobService jobService, JobWorker jobWorker, ProcessedEventRepository processedEventRepository, JobRepository jobRepository, JobQueue jobQueue){
         this.jobService = jobService;
         this.jobWorker = jobWorker;
+        this.processedEventRepository = processedEventRepository;
+        this.jobRepository = jobRepository;
+        this.jobQueue = jobQueue;
     }
 
 
@@ -40,6 +52,31 @@ public class JobController {
 
 
 
+    }
+
+    @PostMapping("/{id}/redeliver")
+    public ResponseEntity<Void> redeliverJob(@PathVariable UUID id) {
+
+        ProcessedEvent processedEvent = processedEventRepository.findByJobId(id)
+                .orElseThrow(() ->
+                        new IllegalStateException("No processed event found for job: " + id));
+
+        Job job = jobRepository.findById(id)
+                .orElseThrow(() ->
+                        new JobNotFoundException("Job not found: " + id));
+
+        JobMessage duplicateMessage = new JobMessage(
+                processedEvent.getEventId(),
+                job.getId(),
+                job.getType(),
+                1
+        );
+
+        // Simulate broker redelivery of the SAME event
+        jobQueue.publish(duplicateMessage);
+        jobQueue.publish(duplicateMessage);
+
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/worker/process")

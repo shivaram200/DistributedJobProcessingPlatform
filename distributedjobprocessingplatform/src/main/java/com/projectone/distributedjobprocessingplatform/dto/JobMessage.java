@@ -4,6 +4,8 @@ import java.util.UUID;
 
 public class JobMessage {
 
+    private UUID eventId;
+
     private UUID jobId;
 
     private String jobType;
@@ -14,10 +16,19 @@ public class JobMessage {
 
     }
 
-    public JobMessage(UUID jobId, String jobType, int attempt) {
+    public JobMessage(UUID eventId,UUID jobId, String jobType, int attempt) {
+        this.eventId = eventId;
         this.jobId = jobId;
         this.jobType = jobType;
         this.attempt = attempt;
+    }
+
+    public UUID getEventId() {
+        return eventId;
+    }
+
+    public void setEventId(UUID eventId) {
+        this.eventId = eventId;
     }
 
     public UUID getJobId() {

@@ -22,4 +22,9 @@ public class InMemoryJobQueue implements JobQueue{
     public JobMessage consume() {
         return queue.poll();
     }
+
+    public void publishDuplicate(JobMessage message) {
+        queue.offer(message);
+        queue.offer(message);
+    }
 }
